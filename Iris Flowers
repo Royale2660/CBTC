@@ -1,0 +1,86 @@
+import pandas as pd
+from sklearn.datasets import load_iris
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+iris = load_iris()
+data = iris.data
+target = iris.target
+target_names = iris.target_names
+df = pd.DataFrame(data, columns=iris.feature_names)
+df['species'] = target
+
+print("First few rows of the Iris dataset:")
+print(df.head())
+
+print("\nSummary statistics of the Iris dataset:")
+print(df.describe())
+
+print("\nVisualizing relationships between features with a pair plot:")
+sns.pairplot(df, hue='species', palette='Set1', markers=["o", "s", "D"])
+plt.show()
+
+print("\nVisualizing the distribution of features with a box plot:")
+plt.figure(figsize=(10, 6))
+sns.boxplot(data=df, width=0.5, palette="Set2")
+plt.show()
+
+print("\nHistogram to visualize the distribution of each feature:")
+df.hist(edgecolor='black', linewidth=1.2, figsize=(12, 8))
+plt.show()
+
+print("\nHeatmap to show correlation between features:")
+corr = df.drop('species', axis=1).corr()
+plt.figure(figsize=(10, 8))
+sns.heatmap(data=corr, annot=True, cmap='coolwarm')
+plt.show()
+
+from sklearn.model_selection import train_test_split
+
+print("\nSplitting the data into training and testing sets:")
+X_train, X_test, y_train, y_test = train_test_split(data, target, test_size=0.2, random_state=42)
+
+print(f"Training data shape: {X_train.shape}")
+print(f"Testing data shape: {X_test.shape}")
+print(f"Training target shape: {y_train.shape}")
+print(f"Testing target shape: {y_test.shape}")
+
+from sklearn.neighbors import KNeighborsClassifier
+
+print("\nCreating and training the k-NN classifier:")
+knn = KNeighborsClassifier(n_neighbors=3)
+
+knn.fit(X_train, y_train)
+
+print("\nMaking predictions on the test set:")
+y_pred = knn.predict(X_test)
+
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, ConfusionMatrixDisplay
+
+accuracy = accuracy_score(y_test, y_pred)
+print(f'Accuracy: {accuracy * 100:.2f}%')
+
+print("\nClassification report:")
+print(classification_report(y_test, y_pred, target_names=target_names))
+
+conf_matrix = confusion_matrix(y_test, y_pred)
+print("\nConfusion matrix:")
+print(conf_matrix)
+
+print("\nVisualizing the confusion matrix with a heatmap:")
+plt.figure(figsize=(8, 6))
+sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=target_names, yticklabels=target_names)
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.show()
+
+cmd = ConfusionMatrixDisplay(conf_matrix, display_labels=target_names)
+cmd.plot(cmap='Blues')
+plt.show()
+
+print("\nPredicting species for new samples:")
+new_samples = [[5.0, 3.5, 1.5, 0.2], [6.5, 3.0, 5.5, 2.0]]
+new_predictions = knn.predict(new_samples)
+predicted_species = [target_names[pred] for pred in new_predictions]
+print(f'New samples: {new_samples}')
+print(f'Predicted species: {predicted_species}')

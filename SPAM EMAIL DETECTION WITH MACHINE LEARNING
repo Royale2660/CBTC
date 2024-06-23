@@ -1,0 +1,87 @@
+import pandas as pd
+import re
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+file_path = 'Spam Email Detection.xlsx'
+df = pd.read_excel(file_path)
+
+# Rename the relevant columns for clarity
+df = df.rename(columns={'v1': 'label', 'v2': 'message'})
+
+df = df[['label', 'message']]
+
+df['message'] = df['message'].astype(str)
+
+df = df[df['message'].str.strip() != '']
+
+def clean_text(text):
+    return re.sub('[^a-zA-Z]', ' ', text).lower()
+
+df['message'] = df['message'].apply(clean_text)
+
+plt.figure(figsize=(6, 6))
+sns.countplot(x='label', data=df)
+plt.title('Distribution of Spam and Ham Emails')
+plt.xlabel('Label')
+plt.ylabel('Count')
+plt.show()
+
+from collections import Counter
+from wordcloud import WordCloud
+
+def plot_wordcloud(text, title):
+    wordcloud = WordCloud(width=800, height=400, max_font_size=110, collocations=False).generate(text)
+    plt.figure(figsize=(10, 7))
+    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.title(title)
+    plt.axis('off')
+    plt.show()
+
+spam_words = ' '.join(list(df[df['label'] == 'spam']['message']))
+ham_words = ' '.join(list(df[df['label'] == 'ham']['message']))
+
+plot_wordcloud(spam_words, 'Most Common Words in Spam Emails')
+plot_wordcloud(ham_words, 'Most Common Words in Ham Emails')
+
+vectorizer = TfidfVectorizer(stop_words='english')
+
+X = vectorizer.fit_transform(df['message'])
+
+# Split the data into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, df['label'], test_size=0.2, random_state=42)
+
+model = MultinomialNB()
+
+model.fit(X_train, y_train)
+
+# Predict the labels for the test set
+y_pred = model.predict(X_test)
+
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy}")
+
+class_report = classification_report(y_test, y_pred)
+conf_matrix = confusion_matrix(y_test, y_pred)
+
+print("Classification Report:\n", class_report)
+print("Confusion Matrix:\n", conf_matrix)
+
+plt.figure(figsize=(6, 6))
+sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=['Ham', 'Spam'], yticklabels=['Ham', 'Spam'])
+plt.title('Confusion Matrix')
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.show()
+
+# Function to predict if an email is spam or not
+def predict_email(email):
+    email_features = vectorizer.transform([email])
+    return model.predict(email_features)[0]
+
+test_email = "Congratulations! You've won a free ticket to Bahamas. Reply with your details to claim now."
+print("Prediction for test email:", predict_email(test_email))
